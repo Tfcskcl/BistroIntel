@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { DollarSign, ShoppingBag, Utensils, AlertTriangle, Users, TrendingUp, Activity, MapPin, Globe, UserX, Brain, Database, ArrowRight, X, Search, Mail, Phone, Calendar, Shield, ShieldCheck, Trash2, Terminal, UploadCloud, FileText, CheckCircle2, Sliders, Cpu, Loader2 } from 'lucide-react';
 import { StatCard } from '../components/StatCard';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
-import { User, UserRole, PlanType, VisitorSession, PlanConfig } from '../types';
+import { User, UserRole, PlanType, VisitorSession, PlanConfig, AppView } from '../types';
 import { authService } from '../services/authService';
 import { storageService } from '../services/storageService';
 import { trackingService } from '../services/trackingService';
@@ -11,6 +11,7 @@ import { MOCK_SALES_DATA } from '../constants';
 
 interface DashboardProps {
     user: User;
+    onNavigate: (view: AppView) => void;
 }
 
 // Sub-component for Journey Visualization
@@ -143,12 +144,6 @@ const SuperAdminDashboard: React.FC = () => {
             const price = plans[curr.plan]?.price || 0;
             return acc + price;
         }, 0);
-    };
-
-    // --- Plan Management Handlers ---
-    const handlePlanChange = (type: PlanType, field: keyof PlanConfig, value: any) => {
-        const updated = { ...plans, [type]: { ...plans[type], [field]: value } };
-        setPlans(updated);
     };
 
     const savePlans = () => {
@@ -436,7 +431,7 @@ const SuperAdminDashboard: React.FC = () => {
     );
 };
 
-export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
     if (user.role === UserRole.SUPER_ADMIN) {
         return <SuperAdminDashboard />;
     }
@@ -523,7 +518,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
                     <h3 className="font-bold text-slate-800 dark:text-white mb-6">Quick Actions</h3>
                     <div className="space-y-3">
-                        <button className="w-full p-3 flex items-center gap-3 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors group">
+                        <button 
+                            onClick={() => onNavigate(AppView.RECIPES)}
+                            className="w-full p-3 flex items-center gap-3 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors group"
+                        >
                             <div className="p-2 bg-white dark:bg-slate-700 rounded-lg shadow-sm text-emerald-600 group-hover:text-emerald-700">
                                 <Brain size={20} />
                             </div>
@@ -534,7 +532,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                             <ArrowRight size={16} className="ml-auto text-slate-400 group-hover:text-emerald-500" />
                         </button>
                         
-                        <button className="w-full p-3 flex items-center gap-3 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors group">
+                        <button 
+                            onClick={() => onNavigate(AppView.INTEGRATIONS)}
+                            className="w-full p-3 flex items-center gap-3 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors group"
+                        >
                             <div className="p-2 bg-white dark:bg-slate-700 rounded-lg shadow-sm text-blue-600 group-hover:text-blue-700">
                                 <UploadCloud size={20} />
                             </div>
@@ -545,7 +546,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                             <ArrowRight size={16} className="ml-auto text-slate-400 group-hover:text-blue-500" />
                         </button>
 
-                        <button className="w-full p-3 flex items-center gap-3 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors group">
+                        <button 
+                            onClick={() => onNavigate(AppView.STRATEGY)}
+                            className="w-full p-3 flex items-center gap-3 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors group"
+                        >
                             <div className="p-2 bg-white dark:bg-slate-700 rounded-lg shadow-sm text-purple-600 group-hover:text-purple-700">
                                 <TrendingUp size={20} />
                             </div>
