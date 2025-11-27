@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User, PlanType, MarketingRequest, UserRole } from '../types';
-import { Clapperboard, Upload, Play, Loader2, Sparkles, CheckCircle2, Film, AlertCircle, Key, Info, Plus, Trash2, Clock3, UserCheck, Download, Image as ImageIcon, Grid, Maximize2, XCircle } from 'lucide-react';
+import { Clapperboard, Upload, Play, Loader2, Sparkles, CheckCircle2, Film, AlertCircle, Key, Info, Plus, Trash2, Clock3, UserCheck, Download, Image as ImageIcon, Grid, Maximize2, XCircle, FileUp } from 'lucide-react';
 import { generateMarketingVideo, generateMarketingImage } from '../services/geminiService';
 import { storageService } from '../services/storageService';
 
@@ -30,6 +30,7 @@ export const VideoStudio: React.FC<VideoStudioProps> = ({ user }) => {
   const [activeRequest, setActiveRequest] = useState<MarketingRequest | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const manualUploadRef = useRef<HTMLInputElement>(null);
   const isAdmin = [UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(user.role);
 
   useEffect(() => {
@@ -70,6 +71,28 @@ export const VideoStudio: React.FC<VideoStudioProps> = ({ user }) => {
           });
           // Reset input
           e.target.value = '';
+      }
+  };
+
+  const handleManualUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files[0]) {
+          const file = e.target.files[0];
+          // Validate type
+          if (activeTab === 'video' && !file.type.startsWith('video/')) {
+              setError("Please upload a valid video file.");
+              return;
+          }
+          if (activeTab === 'image' && !file.type.startsWith('image/')) {
+              setError("Please upload a valid image file.");
+              return;
+          }
+
+          const reader = new FileReader();
+          reader.onloadend = () => {
+              setOutputUrl(reader.result as string);
+              setError(null);
+          };
+          reader.readAsDataURL(file);
       }
   };
 
@@ -139,11 +162,14 @@ export const VideoStudio: React.FC<VideoStudioProps> = ({ user }) => {
   const handleGenerate = async () => {
       // Check for API Key Selection (Required for both Veo and Imagen 3)
       try {
-          const hasKey = await window.aistudio.hasSelectedApiKey();
-          if (!hasKey) {
-              setLoading(true);
-              setLoadingState("Waiting for API Key selection...");
-              await window.aistudio.openSelectKey();
+          const aiStudio = (window as any).aistudio;
+          if (aiStudio) {
+              const hasKey = await aiStudio.hasSelectedApiKey();
+              if (!hasKey) {
+                  setLoading(true);
+                  setLoadingState("Waiting for API Key selection...");
+                  await aiStudio.openSelectKey();
+              }
           }
       } catch (e) {
           console.warn("AI Studio key check skipped or failed", e);
@@ -188,7 +214,10 @@ export const VideoStudio: React.FC<VideoStudioProps> = ({ user }) => {
   // 4. Save/Complete Request (Admin)
   const handleCompleteRequest = () => {
       if (!activeRequest) return;
-      if (!outputUrl) return;
+      if (!outputUrl) {
+          setError("Please generate or upload content before completing.");
+          return;
+      }
 
       // Update request status, including any edits made by Admin
       const completedReq: MarketingRequest = {
@@ -212,7 +241,7 @@ export const VideoStudio: React.FC<VideoStudioProps> = ({ user }) => {
 
   const openKeyDialog = async () => {
       try {
-          await window.aistudio.openSelectKey();
+          await (window as any).aistudio.openSelectKey();
       } catch (e) {
           alert("Could not open key selection dialog.");
       }
@@ -474,14 +503,33 @@ export const VideoStudio: React.FC<VideoStudioProps> = ({ user }) => {
                     </div>
 
                     {activeRequest ? (
-                        <button 
-                            onClick={handleGenerate}
-                            disabled={loading}
-                            className="w-full py-3.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-pink-600 transition-colors flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
-                        >
-                            {loading ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} />}
-                            {loading ? 'Generating...' : 'Generate for User'}
-                        </button>
+                        <>
+                            <button 
+                                onClick={handleGenerate}
+                                disabled={loading}
+                                className="w-full py-3.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-pink-600 transition-colors flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
+                            >
+                                {loading ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} />}
+                                {loading ? 'Generating...' : outputUrl ? 'Regenerate' : 'Generate for User'}
+                            </button>
+
+                            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 text-center">
+                                <p className="text-[10px] text-slate-400 mb-2 uppercase font-bold">Manual Override</p>
+                                <button 
+                                    onClick={() => manualUploadRef.current?.click()}
+                                    className="text-xs font-bold text-slate-500 hover:text-slate-700 underline flex items-center justify-center gap-1"
+                                >
+                                    <FileUp size={12} /> Upload Completed File Manually
+                                </button>
+                                <input 
+                                    type="file" 
+                                    ref={manualUploadRef}
+                                    onChange={handleManualUpload}
+                                    accept={activeTab === 'video' ? "video/*" : "image/*"}
+                                    className="hidden"
+                                />
+                            </div>
+                        </>
                     ) : (
                         <button 
                             onClick={handleSubmitRequest}

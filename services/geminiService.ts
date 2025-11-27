@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import { SYSTEM_INSTRUCTION } from "../constants";
 import { RecipeCard, SOP, StrategyReport, ImplementationGuide, MenuItem } from "../types";
@@ -400,13 +399,13 @@ export const generateMarketingVideo = async (images: string[], prompt: string, a
 
       if (images.length > 1) {
           // Multiple images -> Use veo-3.1-generate-preview
-          // Manually construct payload to avoid import issues
+          // Using hardcoded strings instead of imported Enums to avoid browser issues
           const referenceImagesPayload: any[] = images.map(img => ({
               image: {
                   imageBytes: img,
                   mimeType: 'image/png'
               },
-              referenceType: 'ASSET' // Hardcoded enum string
+              referenceType: 'ASSET'
           }));
 
           operation = await ai.models.generateVideos({

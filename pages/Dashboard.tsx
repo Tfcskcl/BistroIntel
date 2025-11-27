@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import { DollarSign, ShoppingBag, Utensils, AlertTriangle, Users, TrendingUp, Activity, MapPin, Globe, UserX, Brain, Database, ArrowRight, X, Search, Mail, Phone, Calendar, Shield, ShieldCheck, Trash2, Terminal, UploadCloud, FileText, CheckCircle2, Sliders, Cpu, Loader2 } from 'lucide-react';
+import { DollarSign, ShoppingBag, Utensils, AlertTriangle, Users, TrendingUp, Activity, MapPin, Globe, UserX, Brain, Database, ArrowRight, X, Search, Mail, Phone, Calendar, Shield, ShieldCheck, Trash2, Terminal, UploadCloud, FileText, CheckCircle2, Sliders, Cpu, Layers, BarChart3, Loader2 } from 'lucide-react';
 import { StatCard } from '../components/StatCard';
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, Legend } from 'recharts';
 import { User, UserRole, PlanType, VisitorSession, PlanConfig, AppView } from '../types';
 import { authService } from '../services/authService';
 import { storageService } from '../services/storageService';
@@ -13,6 +12,16 @@ interface DashboardProps {
     user: User;
     onNavigate: (view: AppView) => void;
 }
+
+// Mock Data for Super Admin
+const SA_GROWTH_DATA = [
+    { name: 'Jan', revenue: 40000, subscribers: 24 },
+    { name: 'Feb', revenue: 45000, subscribers: 28 },
+    { name: 'Mar', revenue: 55000, subscribers: 35 },
+    { name: 'Apr', revenue: 80000, subscribers: 45 },
+    { name: 'May', revenue: 95000, subscribers: 52 },
+    { name: 'Jun', revenue: 120000, subscribers: 68 },
+];
 
 // Sub-component for Journey Visualization
 const JourneyModal: React.FC<{ visitor: VisitorSession | null, onClose: () => void }> = ({ visitor, onClose }) => {
@@ -144,6 +153,12 @@ const SuperAdminDashboard: React.FC = () => {
             const price = plans[curr.plan]?.price || 0;
             return acc + price;
         }, 0);
+    };
+
+    // --- Plan Management Handlers ---
+    const handlePlanChange = (type: PlanType, field: keyof PlanConfig, value: any) => {
+        const updated = { ...plans, [type]: { ...plans[type], [field]: value } };
+        setPlans(updated);
     };
 
     const savePlans = () => {
@@ -290,6 +305,35 @@ const SuperAdminDashboard: React.FC = () => {
                         />
                     </div>
 
+                    {/* Growth Chart for Super Admin */}
+                    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                <TrendingUp size={18} className="text-emerald-500" /> Platform Growth
+                            </h3>
+                        </div>
+                        <div className="h-[300px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={SA_GROWTH_DATA}>
+                                    <defs>
+                                        <linearGradient id="colorRevSA" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.1}/>
+                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
+                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12}} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12}} tickFormatter={(num) => `₹${num/1000}k`} />
+                                    <Tooltip 
+                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                        formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Revenue']}
+                                    />
+                                    <Area type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorRevSA)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
                     {/* Live Traffic */}
                     <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
                         <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
@@ -432,6 +476,8 @@ const SuperAdminDashboard: React.FC = () => {
 };
 
 export const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
+    const [chartMetric, setChartMetric] = useState<'revenue' | 'items_sold'>('revenue');
+
     if (user.role === UserRole.SUPER_ADMIN) {
         return <SuperAdminDashboard />;
     }
@@ -487,29 +533,53 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
                     <div className="flex justify-between items-center mb-6">
-                        <h3 className="font-bold text-slate-800 dark:text-white">Revenue Overview</h3>
-                        <select className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm px-3 py-1 outline-none text-slate-600 dark:text-slate-300">
-                            <option>Last 7 Days</option>
-                            <option>Last 30 Days</option>
-                        </select>
+                        <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                            <BarChart3 size={20} className={chartMetric === 'revenue' ? "text-emerald-500" : "text-blue-500"} /> 
+                            {chartMetric === 'revenue' ? 'Revenue Overview' : 'Orders Overview'}
+                        </h3>
+                        <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1 gap-1">
+                            <button 
+                                onClick={() => setChartMetric('revenue')}
+                                className={`px-3 py-1 text-xs font-bold rounded transition-colors ${chartMetric === 'revenue' ? 'bg-white dark:bg-slate-700 text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+                            >
+                                Revenue
+                            </button>
+                            <button 
+                                onClick={() => setChartMetric('items_sold')}
+                                className={`px-3 py-1 text-xs font-bold rounded transition-colors ${chartMetric === 'items_sold' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+                            >
+                                Orders
+                            </button>
+                        </div>
                     </div>
                     <div className="h-[300px]">
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={MOCK_SALES_DATA}>
                                 <defs>
-                                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.1}/>
-                                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                                    <linearGradient id="colorMetric" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor={chartMetric === 'revenue' ? "#10b981" : "#3b82f6"} stopOpacity={0.1}/>
+                                        <stop offset="95%" stopColor={chartMetric === 'revenue' ? "#10b981" : "#3b82f6"} stopOpacity={0}/>
                                     </linearGradient>
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
                                 <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 12}} tickFormatter={(str) => new Date(str).getDate().toString()} />
-                                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12}} tickFormatter={(num) => `₹${num/1000}k`} />
+                                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12}} tickFormatter={(num) => chartMetric === 'revenue' ? `₹${num/1000}k` : num.toString()} />
                                 <Tooltip 
                                     contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                    formatter={(value: number) => [`₹${value}`, 'Revenue']}
+                                    formatter={(value: number) => [
+                                        chartMetric === 'revenue' ? `₹${value.toLocaleString()}` : value, 
+                                        chartMetric === 'revenue' ? 'Revenue' : 'Orders'
+                                    ]}
                                 />
-                                <Area type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorRevenue)" />
+                                <Area 
+                                    type="monotone" 
+                                    dataKey={chartMetric} 
+                                    stroke={chartMetric === 'revenue' ? "#10b981" : "#3b82f6"} 
+                                    strokeWidth={2} 
+                                    fillOpacity={1} 
+                                    fill="url(#colorMetric)" 
+                                    animationDuration={1000}
+                                />
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
